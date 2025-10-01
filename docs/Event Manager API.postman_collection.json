@@ -5,22 +5,12 @@
     "description": "Auto-generated Postman collection for Event Manager API. Login and refresh requests will automatically store access_token and refresh_token into the selected Postman environment.",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
-  "event": [
-    {
-      "listen": "prerequest",
-      "script": {
-        "type": "text/javascript",
-        "exec": [
-          "// Ensure JSON headers",
-          "pm.request.headers.upsert({ key: 'Accept', value: 'application/json' });",
-          "pm.request.headers.upsert({ key: 'Content-Type', value: 'application/json' });",
-          "// Add Authorization header if token exists in environment",
-          "const at = pm.environment.get('access_token');",
-          "if (at) { pm.request.headers.upsert({ key: 'Authorization', value: 'Bearer ' + at }); }"
-        ]
-      }
-    }
-  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      { "key": "token", "value": "{{access_token}}", "type": "string" }
+    ]
+  },
   "item": [
     {
       "name": "Auth",
@@ -29,7 +19,10 @@
           "name": "Register",
           "request": {
             "method": "POST",
-            "header": [],
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
             "url": {
               "raw": "{{baseUrl}}/api/auth/register",
               "host": ["{{baseUrl}}"],
@@ -45,7 +38,10 @@
           "name": "Login",
           "request": {
             "method": "POST",
-            "header": [],
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
             "url": {
               "raw": "{{baseUrl}}/api/auth/login",
               "host": ["{{baseUrl}}"],
@@ -78,6 +74,8 @@
           "request": {
             "method": "POST",
             "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" },
               { "key": "X-Refresh-Token", "value": "{{refresh_token}}" }
             ],
             "url": {
@@ -109,6 +107,8 @@
           "request": {
             "method": "POST",
             "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" },
               { "key": "X-Refresh-Token", "value": "{{refresh_token}}" }
             ],
             "url": {
@@ -143,10 +143,18 @@
           "request": {
             "method": "GET",
             "url": {
-              "raw": "{{baseUrl}}/api/users?per_page=15",
+              "raw": "{{baseUrl}}/api/users",
               "host": ["{{baseUrl}}"],
               "path": ["api", "users"],
-              "query": [ { "key": "per_page", "value": "15" } ]
+              "query": [
+                { "key": "per_page", "value": "15" },
+                { "key": "search", "value": "andrew", "disabled": true },
+                { "key": "sort", "value": "-created_at", "disabled": true },
+                { "key": "role", "value": "admin", "disabled": true },
+                { "key": "is_active", "value": "true", "disabled": true },
+                { "key": "created_at_min", "value": "2025-01-01 00:00:00", "disabled": true },
+                { "key": "created_at_max", "value": "2025-12-31 23:59:59", "disabled": true }
+              ]
             }
           }
         },
@@ -165,6 +173,10 @@
           "name": "Create User",
           "request": {
             "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
             "url": {
               "raw": "{{baseUrl}}/api/users",
               "host": ["{{baseUrl}}"],
@@ -180,6 +192,10 @@
           "name": "Update User",
           "request": {
             "method": "PUT",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
             "url": {
               "raw": "{{baseUrl}}/api/users/1",
               "host": ["{{baseUrl}}"],
@@ -212,10 +228,21 @@
           "request": {
             "method": "GET",
             "url": {
-              "raw": "{{baseUrl}}/api/events?per_page=15",
+              "raw": "{{baseUrl}}/api/events",
               "host": ["{{baseUrl}}"],
               "path": ["api", "events"],
-              "query": [ { "key": "per_page", "value": "15" } ]
+              "query": [
+                { "key": "per_page", "value": "15" },
+                { "key": "search", "value": "meetup", "disabled": true },
+                { "key": "sort", "value": "start_time", "disabled": true },
+                { "key": "organizer_id", "value": "1", "disabled": true },
+                { "key": "title", "value": "Workshop", "disabled": true },
+                { "key": "location", "value": "Jakarta", "disabled": true },
+                { "key": "start_time_min", "value": "2025-10-01 00:00:00", "disabled": true },
+                { "key": "start_time_max", "value": "2025-10-31 23:59:59", "disabled": true },
+                { "key": "created_at_min", "value": "2025-10-01 00:00:00", "disabled": true },
+                { "key": "created_at_max", "value": "2025-10-31 23:59:59", "disabled": true }
+              ]
             }
           }
         },
@@ -234,6 +261,10 @@
           "name": "Create Event (organizer/admin)",
           "request": {
             "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
             "url": {
               "raw": "{{baseUrl}}/api/events",
               "host": ["{{baseUrl}}"],
@@ -249,6 +280,10 @@
           "name": "Update Event (organizer/admin)",
           "request": {
             "method": "PUT",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
             "url": {
               "raw": "{{baseUrl}}/api/events/1",
               "host": ["{{baseUrl}}"],
@@ -283,7 +318,17 @@
             "url": {
               "raw": "{{baseUrl}}/api/events/1/tickets",
               "host": ["{{baseUrl}}"],
-              "path": ["api", "events", "1", "tickets"]
+              "path": ["api", "events", "1", "tickets"],
+              "query": [
+                { "key": "per_page", "value": "15" },
+                { "key": "search", "value": "vip", "disabled": true },
+                { "key": "sort", "value": "-price", "disabled": true },
+                { "key": "type", "value": "VIP", "disabled": true },
+                { "key": "price_min", "value": "100000", "disabled": true },
+                { "key": "price_max", "value": "250000", "disabled": true },
+                { "key": "quantity_min", "value": "10", "disabled": true },
+                { "key": "quantity_max", "value": "100", "disabled": true }
+              ]
             }
           }
         },
@@ -291,6 +336,10 @@
           "name": "Create Ticket (organizer/admin)",
           "request": {
             "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
             "url": {
               "raw": "{{baseUrl}}/api/tickets",
               "host": ["{{baseUrl}}"],
@@ -306,6 +355,10 @@
           "name": "Update Ticket (organizer/admin)",
           "request": {
             "method": "PUT",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
             "url": {
               "raw": "{{baseUrl}}/api/tickets/1",
               "host": ["{{baseUrl}}"],
@@ -337,6 +390,10 @@
           "name": "Register for Event",
           "request": {
             "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
             "url": {
               "raw": "{{baseUrl}}/api/registrations",
               "host": ["{{baseUrl}}"],
@@ -353,10 +410,21 @@
           "request": {
             "method": "GET",
             "url": {
-              "raw": "{{baseUrl}}/api/me/registrations?per_page=15",
+              "raw": "{{baseUrl}}/api/me/registrations",
               "host": ["{{baseUrl}}"],
               "path": ["api", "me", "registrations"],
-              "query": [ { "key": "per_page", "value": "15" } ]
+              "query": [
+                { "key": "per_page", "value": "15" },
+                { "key": "search", "value": "confirmed", "disabled": true },
+                { "key": "sort", "value": "-registered_at", "disabled": true },
+                { "key": "event_id", "value": "1", "disabled": true },
+                { "key": "ticket_id", "value": "1", "disabled": true },
+                { "key": "status", "value": "confirmed", "disabled": true },
+                { "key": "registered_at_min", "value": "2025-09-01 00:00:00", "disabled": true },
+                { "key": "registered_at_max", "value": "2025-10-31 23:59:59", "disabled": true },
+                { "key": "created_at_min", "value": "2025-09-01 00:00:00", "disabled": true },
+                { "key": "created_at_max", "value": "2025-10-31 23:59:59", "disabled": true }
+              ]
             }
           }
         }
@@ -369,6 +437,10 @@
           "name": "Submit Feedback",
           "request": {
             "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
             "url": {
               "raw": "{{baseUrl}}/api/feedback",
               "host": ["{{baseUrl}}"],
@@ -387,7 +459,16 @@
             "url": {
               "raw": "{{baseUrl}}/api/events/1/feedback",
               "host": ["{{baseUrl}}"],
-              "path": ["api", "events", "1", "feedback"]
+              "path": ["api", "events", "1", "feedback"],
+              "query": [
+                { "key": "per_page", "value": "15" },
+                { "key": "search", "value": "bagus", "disabled": true },
+                { "key": "sort", "value": "-created_at", "disabled": true },
+                { "key": "user_id", "value": "3", "disabled": true },
+                { "key": "rating_in", "value": "4,5", "disabled": true },
+                { "key": "created_at_min", "value": "2025-09-01 00:00:00", "disabled": true },
+                { "key": "created_at_max", "value": "2025-10-31 23:59:59", "disabled": true }
+              ]
             }
           }
         }

@@ -25,14 +25,13 @@ class AuthService
                 'is_active' => $data['is_active'] ?? true,
             ]);
 
-            $accessToken = JWTAuth::fromUser($user);
-            $refresh = $this->createRefreshSession($user->id, $request);
+            [$accessToken, $refreshToken, $refreshTtlSeconds] = $this->issueTokens($user, $request);
 
             return [
                 'user' => $user,
                 'access_token' => $accessToken,
-                'refresh_token' => $refresh['token'],
-                'expires_in' => $refresh['ttl'],
+                'refresh_token' => $refreshToken,
+                'expires_in' => $refreshTtlSeconds,
             ];
         });
     }
@@ -44,20 +43,37 @@ class AuthService
             throw new HttpException(401, 'Invalid credentials');
         }
 
-        $accessToken = JWTAuth::fromUser($user);
-        $refresh = $this->createRefreshSession($user->id, $request);
+        [$accessToken, $refreshToken, $refreshTtlSeconds] = $this->issueTokens($user, $request);
 
         return [
             'user' => $user,
             'access_token' => $accessToken,
-            'refresh_token' => $refresh['token'],
-            'expires_in' => $refresh['ttl'],
+            'refresh_token' => $refreshToken,
+            'expires_in' => $refreshTtlSeconds,
         ];
     }
 
     public function refresh(string $refreshToken, Request $request): array
     {
+        // Validate refresh JWT
+        try {
+            $payload = JWTAuth::setToken($refreshToken)->getPayload();
+        } catch (\Throwable $e) {
+            throw new HttpException(401, 'Invalid refresh token');
+        }
+
+        if (($payload['token_type'] ?? null) !== 'refresh') {
+            throw new HttpException(401, 'Invalid token type');
+        }
+
+        $userId = (int) ($payload['sub'] ?? 0);
+        if (!$userId) {
+            throw new HttpException(401, 'Invalid refresh token');
+        }
+
+        // Check DB session to allow revocation and single-session control
         $session = UserSession::query()
+            ->where('user_id', $userId)
             ->where('refresh_token', $refreshToken)
             ->whereNull('revoked_at')
             ->where('expires_at', '>', now())
@@ -67,13 +83,14 @@ class AuthService
             throw new HttpException(401, 'Invalid refresh token');
         }
 
-        $user = User::findOrFail($session->user_id);
-        $accessToken = JWTAuth::fromUser($user);
+        $user = User::findOrFail($userId);
 
-        // rotate refresh token
+        // Issue new tokens and rotate refresh session
+        [$accessToken, $newRefreshToken, $refreshTtlSeconds] = $this->issueTokens($user, $request);
+
         $session->update([
-            'refresh_token' => Str::random(64),
-            'expires_at' => now()->addDays(7),
+            'refresh_token' => $newRefreshToken,
+            'expires_at' => now()->addSeconds($refreshTtlSeconds),
             'user_agent' => $request->userAgent(),
             'ip_address' => $request->ip(),
         ]);
@@ -81,8 +98,8 @@ class AuthService
         return [
             'user' => $user,
             'access_token' => $accessToken,
-            'refresh_token' => $session->refresh_token,
-            'expires_in' => 7 * 24 * 60 * 60,
+            'refresh_token' => $newRefreshToken,
+            'expires_in' => $refreshTtlSeconds,
         ];
     }
 
@@ -101,19 +118,47 @@ class AuthService
         }
     }
 
-    private function createRefreshSession(int $userId, Request $request): array
+    /**
+     * Issue access and refresh JWT with user claims and return [access, refresh, refreshTtlSeconds].
+     */
+    private function issueTokens(User $user, Request $request): array
     {
-        $token = Str::random(64);
-        $ttl = 7 * 24 * 60 * 60; // 7 days in seconds
+        $claims = [
+            'token_type' => 'access',
+            'uid' => $user->id,
+            'email' => $user->email,
+            'name' => $user->name,
+            'role' => $user->role,
+            'is_active' => (bool) $user->is_active,
+        ];
 
-        UserSession::create([
-            'user_id' => $userId,
-            'refresh_token' => $token,
-            'expires_at' => now()->addSeconds($ttl),
-            'user_agent' => $request->userAgent(),
-            'ip_address' => $request->ip(),
-        ]);
+        // Access token with default TTL
+        $accessToken = JWTAuth::claims($claims)->fromUser($user);
 
-        return ['token' => $token, 'ttl' => $ttl];
+        // Refresh token with configured refresh TTL and token_type=refresh
+        $factory = JWTAuth::factory();
+        $originalTtl = $factory->getTTL();
+        $factory->setTTL((int) config('jwt.refresh_ttl'));
+        $refreshClaims = $claims;
+        $refreshClaims['token_type'] = 'refresh';
+        $refreshToken = JWTAuth::claims($refreshClaims)->fromUser($user);
+        $factory->setTTL($originalTtl); // restore
+
+        $refreshTtlSeconds = (int) (config('jwt.refresh_ttl') * 60);
+
+        // Persist/rotate session with refresh JWT (to allow revocation)
+        UserSession::updateOrCreate(
+            ['user_id' => $user->id],
+            [
+                'refresh_token' => $refreshToken,
+                'expires_at' => now()->addSeconds($refreshTtlSeconds),
+                'user_agent' => $request->userAgent(),
+                'ip_address' => $request->ip(),
+                'revoked_at' => null,
+            ]
+        );
+
+        return [$accessToken, $refreshToken, $refreshTtlSeconds];
     }
 }
+
