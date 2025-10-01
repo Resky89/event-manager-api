@@ -1,0 +1,397 @@
+{
+  "info": {
+    "_postman_id": "b1c5e7a4-3c7a-4e1f-9b44-ec0f3a2ba012",
+    "name": "Event Manager API",
+    "description": "Auto-generated Postman collection for Event Manager API. Login and refresh requests will automatically store access_token and refresh_token into the selected Postman environment.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "event": [
+    {
+      "listen": "prerequest",
+      "script": {
+        "type": "text/javascript",
+        "exec": [
+          "// Ensure JSON headers",
+          "pm.request.headers.upsert({ key: 'Accept', value: 'application/json' });",
+          "pm.request.headers.upsert({ key: 'Content-Type', value: 'application/json' });",
+          "// Add Authorization header if token exists in environment",
+          "const at = pm.environment.get('access_token');",
+          "if (at) { pm.request.headers.upsert({ key: 'Authorization', value: 'Bearer ' + at }); }"
+        ]
+      }
+    }
+  ],
+  "item": [
+    {
+      "name": "Auth",
+      "item": [
+        {
+          "name": "Register",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/register",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "register"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"{{name}}\",\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\",\n  \"role\": \"user\",\n  \"is_active\": true\n}"
+            }
+          }
+        },
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/login",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "login"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}"
+            }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Login should return 200', function () { pm.response.to.have.status(200); });",
+                  "let json = {}; try { json = pm.response.json(); } catch(e) { json = {}; }",
+                  "const data = json && json.data ? json.data : json;",
+                  "if (data && data.access_token) pm.environment.set('access_token', data.access_token);",
+                  "if (data && data.refresh_token) pm.environment.set('refresh_token', data.refresh_token);",
+                  "if (data && data.expires_in) pm.environment.set('expires_in', String(data.expires_in));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Refresh Token",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-Refresh-Token", "value": "{{refresh_token}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/refresh",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "refresh"]
+            },
+            "body": { "mode": "raw", "raw": "{}" }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Refresh should return 200', function () { pm.response.to.have.status(200); });",
+                  "let json = {}; try { json = pm.response.json(); } catch(e) { json = {}; }",
+                  "const data = json && json.data ? json.data : json;",
+                  "if (data && data.access_token) pm.environment.set('access_token', data.access_token);",
+                  "if (data && data.refresh_token) pm.environment.set('refresh_token', data.refresh_token);",
+                  "if (data && data.expires_in) pm.environment.set('expires_in', String(data.expires_in));"
+                ]
+              }
+            }
+          ]
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "X-Refresh-Token", "value": "{{refresh_token}}" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/logout",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "logout"]
+            },
+            "body": { "mode": "raw", "raw": "{}" }
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "type": "text/javascript",
+                "exec": [
+                  "pm.test('Logout should return 200', function () { pm.response.to.have.status(200); });",
+                  "pm.environment.unset('access_token');",
+                  "pm.environment.unset('refresh_token');",
+                  "pm.environment.unset('expires_in');"
+                ]
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "name": "Users (admin)",
+      "item": [
+        {
+          "name": "List Users",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/users?per_page=15",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "users"],
+              "query": [ { "key": "per_page", "value": "15" } ]
+            }
+          }
+        },
+        {
+          "name": "Get User",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/users/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "users", "1"]
+            }
+          }
+        },
+        {
+          "name": "Create User",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/api/users",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "users"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"John Admin\",\n  \"email\": \"admin@example.com\",\n  \"password\": \"secret123\",\n  \"role\": \"admin\",\n  \"is_active\": true\n}"
+            }
+          }
+        },
+        {
+          "name": "Update User",
+          "request": {
+            "method": "PUT",
+            "url": {
+              "raw": "{{baseUrl}}/api/users/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "users", "1"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Updated Name\",\n  \"email\": \"admin@example.com\",\n  \"role\": \"admin\",\n  \"is_active\": true\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete User",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/api/users/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "users", "1"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Events",
+      "item": [
+        {
+          "name": "List Events",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/events?per_page=15",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "events"],
+              "query": [ { "key": "per_page", "value": "15" } ]
+            }
+          }
+        },
+        {
+          "name": "Get Event",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/events/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "events", "1"]
+            }
+          }
+        },
+        {
+          "name": "Create Event (organizer/admin)",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/api/events",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "events"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"My Event\",\n  \"description\": \"Desc\",\n  \"location\": \"Hall A\",\n  \"start_time\": \"2025-10-01 10:00:00\",\n  \"end_time\": \"2025-10-01 12:00:00\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Update Event (organizer/admin)",
+          "request": {
+            "method": "PUT",
+            "url": {
+              "raw": "{{baseUrl}}/api/events/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "events", "1"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Updated Event\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete Event (organizer/admin)",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/api/events/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "events", "1"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Tickets",
+      "item": [
+        {
+          "name": "List Tickets by Event",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/events/1/tickets",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "events", "1", "tickets"]
+            }
+          }
+        },
+        {
+          "name": "Create Ticket (organizer/admin)",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/api/tickets",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "tickets"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"event_id\": 1,\n  \"type\": \"VIP\",\n  \"price\": 100000,\n  \"quantity\": 50\n}"
+            }
+          }
+        },
+        {
+          "name": "Update Ticket (organizer/admin)",
+          "request": {
+            "method": "PUT",
+            "url": {
+              "raw": "{{baseUrl}}/api/tickets/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "tickets", "1"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type\": \"VVIP\",\n  \"price\": 150000\n}"
+            }
+          }
+        },
+        {
+          "name": "Delete Ticket (organizer/admin)",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{baseUrl}}/api/tickets/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "tickets", "1"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Registrations",
+      "item": [
+        {
+          "name": "Register for Event",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/api/registrations",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "registrations"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"event_id\": 1,\n  \"ticket_id\": 1\n}"
+            }
+          }
+        },
+        {
+          "name": "My Registrations",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/me/registrations?per_page=15",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "me", "registrations"],
+              "query": [ { "key": "per_page", "value": "15" } ]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Feedback",
+      "item": [
+        {
+          "name": "Submit Feedback",
+          "request": {
+            "method": "POST",
+            "url": {
+              "raw": "{{baseUrl}}/api/feedback",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "feedback"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"event_id\": 1,\n  \"rating\": 5,\n  \"comment\": \"Great!\"\n}"
+            }
+          }
+        },
+        {
+          "name": "List Feedback by Event",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/events/1/feedback",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "events", "1", "feedback"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
