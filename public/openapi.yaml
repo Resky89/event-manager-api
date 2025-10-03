@@ -1,0 +1,659 @@
+openapi: 3.0.3
+info:
+  title: Event Manager API
+  version: 1.0.0
+  description: |
+    OpenAPI specification generated based on the provided Postman collection and Laravel routes.
+    
+    Notes:
+    - Authentication uses Bearer JWT in the `Authorization` header for protected endpoints.
+    - Token refresh and logout also use an `X-Refresh-Token` header.
+servers:
+  - url: "{baseUrl}"
+    variables:
+      baseUrl:
+        default: "http://localhost:8000"
+        description: Base URL of the API server
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    PerPage:
+      name: per_page
+      in: query
+      description: Items per page
+      required: false
+      schema:
+        type: integer
+        minimum: 1
+        default: 15
+    Search:
+      name: search
+      in: query
+      required: false
+      schema:
+        type: string
+    Sort:
+      name: sort
+      in: query
+      required: false
+      schema:
+        type: string
+    XRefreshToken:
+      name: X-Refresh-Token
+      in: header
+      description: Refresh token header
+      required: true
+      schema:
+        type: string
+  schemas:
+    RegisterRequest:
+      type: object
+      required: [name, email, password]
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+        role:
+          type: string
+          enum: [user, organizer, admin]
+        is_active:
+          type: boolean
+          default: true
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          format: password
+    UserCreateRequest:
+      type: object
+      required: [name, email, password, role]
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+        role:
+          type: string
+          enum: [user, organizer, admin]
+        is_active:
+          type: boolean
+          default: true
+    UserUpdateRequest:
+      type: object
+      properties:
+        name:
+          type: string
+        email:
+          type: string
+          format: email
+        role:
+          type: string
+          enum: [user, organizer, admin]
+        is_active:
+          type: boolean
+    EventCreateRequest:
+      type: object
+      required: [title, start_time, end_time]
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        location:
+          type: string
+        start_time:
+          type: string
+          format: date-time
+        end_time:
+          type: string
+          format: date-time
+    EventUpdateRequest:
+      type: object
+      properties:
+        title:
+          type: string
+        description:
+          type: string
+        location:
+          type: string
+        start_time:
+          type: string
+          format: date-time
+        end_time:
+          type: string
+          format: date-time
+    TicketCreateRequest:
+      type: object
+      required: [event_id, type, price, quantity]
+      properties:
+        event_id:
+          type: integer
+        type:
+          type: string
+        price:
+          type: number
+        quantity:
+          type: integer
+    TicketUpdateRequest:
+      type: object
+      properties:
+        type:
+          type: string
+        price:
+          type: number
+        quantity:
+          type: integer
+    RegistrationCreateRequest:
+      type: object
+      required: [event_id, ticket_id]
+      properties:
+        event_id:
+          type: integer
+        ticket_id:
+          type: integer
+    FeedbackCreateRequest:
+      type: object
+      required: [event_id, rating]
+      properties:
+        event_id:
+          type: integer
+        rating:
+          type: integer
+          minimum: 1
+          maximum: 5
+        comment:
+          type: string
+paths:
+  /api/auth/register:
+    post:
+      summary: Register a new user
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterRequest'
+      responses:
+        '201':
+          description: User registered
+        '422':
+          description: Validation error
+  /api/auth/login:
+    post:
+      summary: Login
+      tags: [Auth]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Tokens returned
+  /api/auth/refresh:
+    post:
+      summary: Refresh access token
+      tags: [Auth]
+      parameters:
+        - $ref: '#/components/parameters/XRefreshToken'
+      responses:
+        '200':
+          description: Tokens refreshed
+  /api/auth/logout:
+    post:
+      summary: Logout and revoke tokens
+      tags: [Auth]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/XRefreshToken'
+      responses:
+        '200':
+          description: Logged out
+
+  /api/users:
+    get:
+      summary: List users (admin)
+      tags: [Users]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PerPage'
+        - $ref: '#/components/parameters/Search'
+        - $ref: '#/components/parameters/Sort'
+        - name: role
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [user, organizer, admin]
+        - name: is_active
+          in: query
+          required: false
+          schema:
+            type: boolean
+        - name: created_at_min
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+        - name: created_at_max
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: OK
+    post:
+      summary: Create user (admin)
+      tags: [Users]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserCreateRequest'
+      responses:
+        '201':
+          description: Created
+  /api/users/{id}:
+    get:
+      summary: Get user by ID (admin)
+      tags: [Users]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: OK
+    put:
+      summary: Update user (admin)
+      tags: [Users]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserUpdateRequest'
+      responses:
+        '200':
+          description: Updated
+    delete:
+      summary: Delete user (admin)
+      tags: [Users]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Deleted
+
+  /api/events:
+    get:
+      summary: List events
+      tags: [Events]
+      parameters:
+        - $ref: '#/components/parameters/PerPage'
+        - $ref: '#/components/parameters/Search'
+        - $ref: '#/components/parameters/Sort'
+        - name: organizer_id
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: title
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: location
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: start_time_min
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+        - name: start_time_max
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+        - name: created_at_min
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+        - name: created_at_max
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: OK
+    post:
+      summary: Create event (organizer/admin)
+      tags: [Events]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EventCreateRequest'
+      responses:
+        '201':
+          description: Created
+  /api/events/{id}:
+    get:
+      summary: Get event by ID
+      tags: [Events]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: OK
+    put:
+      summary: Update event (organizer/admin)
+      tags: [Events]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EventUpdateRequest'
+      responses:
+        '200':
+          description: Updated
+    delete:
+      summary: Delete event (organizer/admin)
+      tags: [Events]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Deleted
+
+  /api/events/{eventId}/tickets:
+    get:
+      summary: List tickets for an event
+      tags: [Tickets]
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - $ref: '#/components/parameters/PerPage'
+        - $ref: '#/components/parameters/Search'
+        - $ref: '#/components/parameters/Sort'
+        - name: type
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: price_min
+          in: query
+          required: false
+          schema:
+            type: number
+        - name: price_max
+          in: query
+          required: false
+          schema:
+            type: number
+        - name: quantity_min
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: quantity_max
+          in: query
+          required: false
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: OK
+  /api/tickets:
+    post:
+      summary: Create ticket (organizer/admin)
+      tags: [Tickets]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TicketCreateRequest'
+      responses:
+        '201':
+          description: Created
+  /api/tickets/{id}:
+    put:
+      summary: Update ticket (organizer/admin)
+      tags: [Tickets]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TicketUpdateRequest'
+      responses:
+        '200':
+          description: Updated
+    delete:
+      summary: Delete ticket (organizer/admin)
+      tags: [Tickets]
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        '204':
+          description: Deleted
+
+  /api/registrations:
+    post:
+      summary: Register for event
+      tags: [Registrations]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegistrationCreateRequest'
+      responses:
+        '201':
+          description: Created
+  /api/me/registrations:
+    get:
+      summary: List my registrations
+      tags: [Registrations]
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/PerPage'
+        - $ref: '#/components/parameters/Search'
+        - $ref: '#/components/parameters/Sort'
+        - name: event_id
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: ticket_id
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+        - name: registered_at_min
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+        - name: registered_at_max
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+        - name: created_at_min
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+        - name: created_at_max
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: OK
+
+  /api/feedback:
+    post:
+      summary: Submit feedback
+      tags: [Feedback]
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FeedbackCreateRequest'
+      responses:
+        '201':
+          description: Created
+  /api/events/{eventId}/feedback:
+    get:
+      summary: List feedback for an event
+      tags: [Feedback]
+      parameters:
+        - name: eventId
+          in: path
+          required: true
+          schema:
+            type: integer
+        - $ref: '#/components/parameters/PerPage'
+        - $ref: '#/components/parameters/Search'
+        - $ref: '#/components/parameters/Sort'
+        - name: user_id
+          in: query
+          required: false
+          schema:
+            type: integer
+        - name: rating_in
+          in: query
+          required: false
+          description: Comma-separated list of ratings, e.g., 4,5
+          schema:
+            type: string
+        - name: created_at_min
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+        - name: created_at_max
+          in: query
+          required: false
+          schema:
+            type: string
+            format: date-time
+      responses:
+        '200':
+          description: OK
