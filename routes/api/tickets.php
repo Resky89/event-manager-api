@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\TicketController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/events/{eventId}/tickets', [TicketController::class, 'indexByEvent']);
+Route::get('/events/{eventId}/tickets/{id}', [TicketController::class, 'showByEvent']);
 
 Route::middleware(['jwt', 'role:organizer,admin'])->group(function () {
     Route::post('/tickets', [TicketController::class, 'store']);

@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Helpers\ResponseFormatter;
 use App\Models\User;
 use App\Models\UserSession;
+use App\Notifications\VerifyOtpNotification;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
@@ -20,10 +21,19 @@ class AuthService
             $user = User::create([
                 'name' => $data['name'],
                 'email' => $data['email'],
-                'password' => $data['password'], // hashed by cast
-                'role' => $data['role'] ?? 'user',
-                'is_active' => $data['is_active'] ?? true,
+                'password' => $data['password'],
+                'role' => 'user',
+                'is_active' => true,
             ]);
+
+            // If role is user, require OTP verification before login
+            if (($user->role ?? 'user') === 'user') {
+                $this->generateOtp($user);
+                return [
+                    'user' => $user,
+                    'requires_verification' => true,
+                ];
+            }
 
             [$accessToken, $refreshToken, $refreshTtlSeconds] = $this->issueTokens($user, $request);
 
@@ -41,6 +51,10 @@ class AuthService
         $user = User::where('email', $email)->first();
         if (!$user || !Hash::check($password, $user->password)) {
             throw new HttpException(401, 'Invalid credentials');
+        }
+
+        if ($user->role === 'user' && !$user->email_verified_at) {
+            throw new HttpException(403, 'Please verify your account via OTP');
         }
 
         [$accessToken, $refreshToken, $refreshTtlSeconds] = $this->issueTokens($user, $request);
@@ -159,6 +173,52 @@ class AuthService
         );
 
         return [$accessToken, $refreshToken, $refreshTtlSeconds];
+    }
+
+    private function generateOtp(User $user): void
+    {
+        $code = (string) random_int(100000, 999999);
+        $user->otp_code = $code;
+        $user->otp_expires_at = now()->addMinutes(10);
+        $user->save();
+        // Send OTP via email (configure MAIL_* in .env)
+        try {
+            $user->notify(new VerifyOtpNotification($code));
+        } catch (\Throwable $e) {
+            report($e);
+        }
+    }
+
+    public function verifyOtp(string $email, string $otp, Request $request): array
+    {
+        $user = User::where('email', $email)->first();
+        if (!$user || $user->role !== 'user') {
+            throw new HttpException(404, 'User not found');
+        }
+        if (!$user->otp_code || !$user->otp_expires_at || $user->otp_code !== $otp || now()->greaterThan($user->otp_expires_at)) {
+            throw new HttpException(422, 'Invalid or expired OTP');
+        }
+        $user->email_verified_at = now();
+        $user->otp_code = null;
+        $user->otp_expires_at = null;
+        $user->save();
+
+        [$accessToken, $refreshToken, $refreshTtlSeconds] = $this->issueTokens($user, $request);
+        return [
+            'user' => $user,
+            'access_token' => $accessToken,
+            'refresh_token' => $refreshToken,
+            'expires_in' => $refreshTtlSeconds,
+        ];
+    }
+
+    public function resendOtp(string $email): void
+    {
+        $user = User::where('email', $email)->first();
+        if (!$user || $user->role !== 'user') {
+            throw new HttpException(404, 'User not found');
+        }
+        $this->generateOtp($user);
     }
 }
 

@@ -46,6 +46,15 @@ class TicketController extends Controller
         return ResponseFormatter::success($data);
     }
 
+    public function showByEvent(int $eventId, int $id)
+    {
+        $ticket = Ticket::query()->where('event_id', $eventId)->where('id', $id)->first();
+        if (!$ticket) {
+            return ResponseFormatter::error(null, 404);
+        }
+        return ResponseFormatter::success(new TicketResource($ticket));
+    }
+
     public function store(TicketRequest $request)
     {
         $ticket = $this->tickets->create($request->validated());

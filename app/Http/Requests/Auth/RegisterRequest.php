@@ -17,8 +17,8 @@ class RegisterRequest extends FormRequest
             'name' => ['required', 'string', 'max:100'],
             'email' => ['required', 'email', 'max:150', 'unique:users,email'],
             'password' => ['required', 'string', 'min:6'],
-            'role' => ['nullable', 'in:admin,organizer,user'],
-            'is_active' => ['nullable', 'boolean'],
+            'role' => ['prohibited'],
+            'is_active' => ['prohibited'],
         ];
     }
 }

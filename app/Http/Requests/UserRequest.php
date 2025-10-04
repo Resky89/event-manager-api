@@ -17,10 +17,10 @@ class UserRequest extends FormRequest
         $isPost = $this->isMethod('post');
 
         return [
-            'name' => ['required', 'string', 'max:100'],
-            'email' => ['required', 'email', 'max:150', 'unique:users,email,' . ($id ?? 'NULL')],
+            'name' => $isPost ? ['required', 'string', 'max:100'] : ['sometimes', 'string', 'max:100'],
+            'email' => $isPost ? ['required', 'email', 'max:150', 'unique:users,email,' . ($id ?? 'NULL')] : ['sometimes', 'email', 'max:150', 'unique:users,email,' . ($id ?? 'NULL')],
             'password' => $isPost ? ['required', 'string', 'min:6'] : ['sometimes', 'string', 'min:6'],
-            'role' => ['required', 'in:admin,organizer,user'],
+            'role' => $isPost ? ['required', 'in:admin,organizer,user'] : ['sometimes', 'in:admin,organizer,user'],
             'is_active' => ['sometimes', 'boolean'],
         ];
     }

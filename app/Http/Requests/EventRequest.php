@@ -13,13 +13,20 @@ class EventRequest extends FormRequest
 
     public function rules(): array
     {
+        $isPost = $this->isMethod('post');
+
+        $endTimeRules = $isPost ? ['required', 'date', 'after:start_time'] : ['sometimes', 'date'];
+        if (!$isPost && $this->has('start_time')) {
+            $endTimeRules[] = 'after:start_time';
+        }
+
         return [
             'organizer_id' => ['sometimes', 'exists:users,id'],
-            'title' => ['required', 'string', 'max:200'],
+            'title' => $isPost ? ['required', 'string', 'max:200'] : ['sometimes', 'string', 'max:200'],
             'description' => ['nullable', 'string'],
             'location' => ['nullable', 'string', 'max:255'],
-            'start_time' => ['required', 'date'],
-            'end_time' => ['required', 'date', 'after:start_time'],
+            'start_time' => $isPost ? ['required', 'date'] : ['sometimes', 'date'],
+            'end_time' => $endTimeRules,
         ];
     }
 }

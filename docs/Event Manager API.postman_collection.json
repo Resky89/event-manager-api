@@ -30,7 +30,7 @@
             },
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"name\": \"{{name}}\",\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\",\n  \"role\": \"user\",\n  \"is_active\": true\n}"
+              "raw": "{\n  \"name\": \"{{name}}\",\n  \"email\": \"{{email}}\",\n  \"password\": \"{{password}}\"\n}"
             }
           }
         },
@@ -101,6 +101,44 @@
               }
             }
           ]
+        },
+        {
+          "name": "Verify OTP",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/verify-otp",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "verify-otp"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\",\n  \"otp_code\": \"123456\"\n}"
+            }
+          }
+        },
+        {
+          "name": "Resend OTP",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/auth/resend-otp",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "auth", "resend-otp"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"{{email}}\"\n}"
+            }
+          }
         },
         {
           "name": "Logout",
@@ -333,6 +371,17 @@
           }
         },
         {
+          "name": "Get Ticket by Event & ID",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{baseUrl}}/api/events/1/tickets/1",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "events", "1", "tickets", "1"]
+            }
+          }
+        },
+        {
           "name": "Create Ticket (organizer/admin)",
           "request": {
             "method": "POST",
@@ -425,6 +474,25 @@
                 { "key": "created_at_min", "value": "2025-09-01 00:00:00", "disabled": true },
                 { "key": "created_at_max", "value": "2025-10-31 23:59:59", "disabled": true }
               ]
+            }
+          }
+        },
+        {
+          "name": "Pay Registration",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Accept", "value": "application/json" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "url": {
+              "raw": "{{baseUrl}}/api/registrations/1/pay",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "registrations", "1", "pay"]
+            },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"transaction_ref\": \"INV-001\",\n  \"method\": \"VA-BNI\"\n}"
             }
           }
         }
